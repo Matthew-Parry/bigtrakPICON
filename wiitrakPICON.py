@@ -13,7 +13,6 @@
 # Import required Python libraries
 # -----------------------
 import cwiid		#module for connecting Wii remote
-#import bigtrak		#module for controlling bigtrak
 import time
 import os
 import RPi.GPIO as GPIO
@@ -52,7 +51,7 @@ while True:
     wii.rumble = 1
     time.sleep(1)
     wii.rumble = 0
-    pz.stop()
+    pz.stop()   #stop motors
     exit(wii)
 
   # Check if other buttons are pressed by
@@ -63,9 +62,6 @@ while True:
     pz.spinLeft(speed)
     time.sleep(0.25)
     pz.stop()
-#    bigtrak.setupPins()
-#    bigtrak.goleft(0.15)
-#    bigtrak.resetpins()
     time.sleep(button_delay)
 
   if(buttons & cwiid.BTN_RIGHT):
@@ -73,9 +69,6 @@ while True:
     pz.spinRight(speed)
     time.sleep(0.25)
     pz.stop()
-#    bigtrak.setupPins()
-#    bigtrak.goright(0.15)
-#    bigtrak.resetpins()
     time.sleep(button_delay)
 
   if (buttons & cwiid.BTN_UP):
@@ -83,9 +76,6 @@ while True:
     pz.forward(speed)
     time.sleep(0.25)
     pz.stop()
-#    bigtrak.setupPins()
-#    bigtrak.goforwards(0.25)
-#    bigtrak.resetpins()
     time.sleep(button_delay)
 
   if (buttons & cwiid.BTN_DOWN):
@@ -93,15 +83,11 @@ while True:
     pz.reverse(speed)
     time.sleep(0.25)
     pz.stop()
-#    bigtrak.setupPins()
-#    bigtrak.gobackwards(0.25)
-#    bigtrak.resetpins()
     time.sleep(button_delay)
 
   if (buttons & cwiid.BTN_1):
-    print 'Button 1 pressed - stop auto drive'
+    print 'Button 1 pressed - stop motors'
     pz.stop()
-    hcsr04.cleanup()
     time.sleep(button_delay)
 
   if (buttons & cwiid.BTN_2):
@@ -141,16 +127,73 @@ while True:
   if (buttons & cwiid.BTN_A):
     print 'Button A pressed - start line tracking'
     line.init()
+    lineTrack = True
     #do line tracking
+    while lineTrack:
 
+      line_left = int(line.getLeft())
+      line_right = int(line.getRight())
+
+      if line_left == 0:
+        #drive to right
+        print "right"
+        pz.spinRight(speed)
+        time.sleep(0.25)
+        #then go forward
+        pz.forward(speed)
+        time.sleep(0.25)
+      elif line_right == 0:
+        #drive left
+        print "left"
+        pz.spinLeft(speed)
+        time.sleep(0.25)
+        #then go forward
+        pz.forward(speed)
+        time.sleep(0.25)
+      else:
+        #just go forwards
+        print "forwards"
+        pz.forward(speed)
+        time.sleep(0.25)
+
+      if wii.state['buttons'] & cwiid.BTN_1:
+        lineTrack = False
+
+    #if button 1 pressed then stop
+    pz.stop()
+    line.cleanup()          
     time.sleep(button_delay)
 
   if (buttons & cwiid.BTN_B):
-    print 'Button B pressed - stop line tracking'
-    #stop line tracking
-    line.cleanup()
-    #stop motors
+    print 'Button B pressed - lights on'
+    speed = 0.2
+    pz.setOutputConfig(0, 1)    
+    lights = True
+    while lights:
+        pz.setOutput(0, 5) # 5% very dim
+        time.sleep(speed)
+        if wii.state['buttons'] & cwiid.BTN_B:
+          lights = False
+        pz.setOutput(0, 30) # 30% medium
+        time.sleep(speed)
+        if wii.state['buttons'] & cwiid.BTN_B:
+          lights = False
+        pz.setOutput(0, 70) # 70% bright
+        time.sleep(speed)
+        if wii.state['buttons'] & cwiid.BTN_B:
+          lights = False
+        pz.setOutput(0, 100) # 100% maximum
+        time.sleep(speed)
+        if wii.state['buttons'] & cwiid.BTN_B:
+          lights = False
+        pz.setOutput(0, 70) # 70% bright
+        time.sleep(speed)
+        if wii.state['buttons'] & cwiid.BTN_B:
+          lights = False
+        pz.setOutput(0, 30) # 30% medium
+        time.sleep(speed)
 
+    pz.setOutput(0,0)  #lights off
     time.sleep(button_delay)
 
   if (buttons & cwiid.BTN_HOME):
